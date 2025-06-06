@@ -107,6 +107,7 @@ int main() {
     //     map[i] = 2;
     //     printMainScreen();
     // }
+    srand(time(0));
     printIntroScreen();
     int move = int(getch())-48; //char 1 = int 49
     while(move != 1 && move != 2) {
@@ -120,7 +121,35 @@ int main() {
     bool gameover = false;
     while(!gameover) {
         if(singleplayer) {
-            break;
+            if(turn == 0) {
+                while(!isValidMove(move)) move = int(getch())-48;
+            } else {
+                // AI MOVE: currently just rng
+                while(!isValidMove(move)) move = rand()%9+1;
+            }
+            map[move-1] = turn;
+            if(turn == 0) p1places.push(move-1);
+            else p2places.push(move-1);
+            
+            int placeTakenOff = -1;
+            bool needsPop = false;
+            if(p1places.size()>3) {
+                needsPop = true;
+                placeTakenOff = p1places.front();
+                p1places.pop();
+            }
+            if(p2places.size()>3) {
+                needsPop = true;
+                placeTakenOff = p2places.front();
+                p2places.pop();
+            }
+            if(needsPop) map[placeTakenOff] = -1;
+            printMainScreen();
+            turn = (turn+1)%2;
+            gameover = checkWin();
+            move = -1;
+
+
         } else {
             while(!isValidMove(move)) move = int(getch())-48;
             map[move-1] = turn;
