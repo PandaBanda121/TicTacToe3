@@ -19,7 +19,7 @@
 using namespace std;
 
 
-vector<int> map = {-1,-1,-1,-1,-1,-1,-1,-1,-1};
+vector<int> places = {-1,-1,-1,-1,-1,-1,-1,-1,-1};
 // player 1: 0
 // player 2: 1
 // │ ╲╱
@@ -38,6 +38,10 @@ vector<string> row32 = {"    ","    ","    ","\n"};
 vector<vector<string>> rows = {row11, row12, row21, row22, row31, row32};
 
 
+int AIthinkTime = 500000;
+
+
+
 void printMainScreen() {
     cout << "\033[2J\033[1;1H";
     for(int i = 0; i < 9; i++) {
@@ -46,15 +50,15 @@ void printMainScreen() {
         // cout << row << col << " ";
         // if(i%3 == 2) cout << "\n";
         
-        if(map[i] == -1) {
+        if(places[i] == -1) {
             rows[2*row][col] =   "    ";
             rows[2*row+1][col] = "    ";
         }
-        if(map[i] == 0) {
+        if(places[i] == 0) {
             rows[2*row][col] =   " ╲╱ ";
             rows[2*row+1][col] = " ╱╲ ";
         }
-        if(map[i] == 1) {
+        if(places[i] == 1) {
             rows[2*row][col] =   " ╱╲ ";
             rows[2*row+1][col] = " ╲╱ ";
         }        
@@ -79,7 +83,7 @@ void printIntroScreen() {
 
 bool isValidMove(int move) {
     if(move>=1 && move<=9) {
-        if(map[move-1] == -1) return true;
+        if(places[move-1] == -1) return true;
     }
     return false;
 }
@@ -88,23 +92,69 @@ bool isValidMove(int move) {
 // 345
 // 678
 
-bool checkWin() {
+//simulate cpu move, if win detected, stop
+//if no win, simulate player move, if loss detected, stop
+//if no win/loss, simulate most optimal player move for win, then simulate most optimal cpu move to prevent loss
+//damn wtf lol
+
+
+// How to make the cpu?
+// 1. write out all possibilities for the AI win sequences, see which moves have the highest win rate, then make the cpu move according to that
+// 2. 
+
+
+bool checkWin(vector<int> checkingMap) {
     for(int i = 0; i <= 2; i++) {
-        if(map[3*i] == map[3*i+1] && map[3*i+1] == map[3*i+2] && map[3*i+2] != -1) return true;
-        if(map[i] == map[i+3*1] && map[i+3*1] == map[i+3*2] && map[i+3*2] != -1) return true;
+        if(checkingMap[3*i] == checkingMap[3*i+1] && checkingMap[3*i+1] == checkingMap[3*i+2] && checkingMap[3*i+2] != -1) return true;
+        if(checkingMap[i] == checkingMap[i+3*1] && checkingMap[i+3*1] == checkingMap[i+3*2] && checkingMap[i+3*2] != -1) return true;
     }
-    if(map[0] == map[4] && map[4] == map[8] && map[8] != -1) return true;
-    if(map[2] == map[4] && map[4] == map[6] && map[6] != -1) return true;
+    if(checkingMap[0] == checkingMap[4] && checkingMap[4] == checkingMap[8] && checkingMap[8] != -1) return true;
+    if(checkingMap[2] == checkingMap[4] && checkingMap[4] == checkingMap[6] && checkingMap[6] != -1) return true;
     return false;
 }
+
+int AImove() {
+    int optimalMove = -1;
+    vector<int> potentialPlaces = {};
+    vector<int> potentialAIMoves = {};
+    for(int i : places) potentialPlaces.push_back(i);
+    queue<int> potentialp1places = p1places;
+    queue<int> potentialp2places = p2places;
+    
+    for(int i = 0; i < 9; i++) if(potentialPlaces[i] == -1) potentialAIMoves.push_back(i);
+    for(int i : potentialAIMoves) cout << i << " ";
+    for(int i : potentialAIMoves) {
+        potentialPlaces[i] = 1;
+        potentialp2places.push(i);
+        if(potentialp2places.size() > 3) {
+            places[potentialp2places.front()] = -1;
+            potentialp2places.pop();
+        }
+        if(checkWin(potentialPlaces)) return i;
+        potentialp2places = p2places;
+        potentialPlaces[i] = -1;
+    }
+
+    if(optimalMove == -1) {
+        bool isValid = false;
+        while(!isValid) {
+            optimalMove = rand()%9;
+            if(places[optimalMove] == -1) isValid = true;
+        }
+    }
+    return optimalMove;
+}
+
+
+
 
 int main() {
     
     cout << "Working" << endl;
     // for(int i = 0; i < 9; i++) {
-    //     map[i] = 1;
+    //     places[i] = 1;
     //     printMainScreen();
-    //     map[i] = 2;
+    //     places[i] = 2;
     //     printMainScreen();
     // }
     srand(time(0));
@@ -120,61 +170,42 @@ int main() {
     int turn = 0;
     bool gameover = false;
     while(!gameover) {
-        if(singleplayer) {
-            if(turn == 0) {
-                while(!isValidMove(move)) move = int(getch())-48;
-            } else {
-                // AI MOVE: currently just rng
-                while(!isValidMove(move)) move = rand()%9+1;
-            }
-            map[move-1] = turn;
-            if(turn == 0) p1places.push(move-1);
-            else p2places.push(move-1);
-            
-            int placeTakenOff = -1;
-            bool needsPop = false;
-            if(p1places.size()>3) {
-                needsPop = true;
-                placeTakenOff = p1places.front();
-                p1places.pop();
-            }
-            if(p2places.size()>3) {
-                needsPop = true;
-                placeTakenOff = p2places.front();
-                p2places.pop();
-            }
-            if(needsPop) map[placeTakenOff] = -1;
-            printMainScreen();
-            turn = (turn+1)%2;
-            gameover = checkWin();
-            move = -1;
-
-
-        } else {
+        if(turn == 0) {
             while(!isValidMove(move)) move = int(getch())-48;
-            map[move-1] = turn;
-            if(turn == 0) p1places.push(move-1);
-            else p2places.push(move-1);
-            
-            int placeTakenOff = -1;
-            bool needsPop = false;
+            places[move-1] = 0;
+            p1places.push(move-1);
             if(p1places.size()>3) {
-                needsPop = true;
-                placeTakenOff = p1places.front();
+                places[p1places.front()] = -1;
                 p1places.pop();
             }
-            if(p2places.size()>3) {
-                needsPop = true;
-                placeTakenOff = p2places.front();
-                p2places.pop();
+        } else {
+            if(singleplayer) {
+                // AI MOVE: currently just rng
+                cout << "Computer thinking..." << endl;
+                usleep(AIthinkTime);
+                move = AImove();
+                places[move] = 1;
+                p2places.push(move);
+                if(p2places.size()>3) {
+                    places[p2places.front()] = -1;
+                    p2places.pop();
+                }
+            } else {
+                while(!isValidMove(move)) move = int(getch())-48;
+                places[move-1] = 1;
+                p2places.push(move-1);
+                if(p2places.size()>3) {
+                    places[p2places.front()] = -1;
+                    p2places.pop();
+                }
             }
-            if(needsPop) map[placeTakenOff] = -1;
-            printMainScreen();
-            turn = (turn+1)%2;
-            gameover = checkWin();
-            move = -1;
         }
+        printMainScreen();
+        turn = (turn+1)%2;
+        gameover = checkWin(places);
+        move = -1;
     }
+
     string winner = "";
     if(turn == 1) winner = "X";
     else winner = "O";
