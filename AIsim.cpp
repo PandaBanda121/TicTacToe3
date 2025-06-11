@@ -10,6 +10,7 @@
 #include <sstream>
 #include <queue>
 #include <stack>
+#include <map>
 
 #include <Windows.h>
 #pragma execution_character_set("utf-8")
@@ -18,28 +19,23 @@
 
 using namespace std;
 
+map<vector<int>, int> listOfGames = {};
 
-bool checkXWin(vector<int> checkingMap) {
+vector<vector<int>> initialMoveWinRates = {};
+
+
+
+bool checkGame(vector<int> checkingMap) {
     for(int i = 0; i <= 2; i++) {
-        if(checkingMap[3*i] == checkingMap[3*i+1] && checkingMap[3*i+1] == checkingMap[3*i+2] && checkingMap[3*i+2] == 0) return true;
-        if(checkingMap[i] == checkingMap[i+3*1] && checkingMap[i+3*1] == checkingMap[i+3*2] && checkingMap[i+3*2] == 0) return true;
+        if(checkingMap[3*i] == checkingMap[3*i+1] && checkingMap[3*i+1] == checkingMap[3*i+2] && checkingMap[3*i+2] != -1) return true;
+        if(checkingMap[i] == checkingMap[i+3*1] && checkingMap[i+3*1] == checkingMap[i+3*2] && checkingMap[i+3*2] != -1) return true;
     }
-    if(checkingMap[0] == checkingMap[4] && checkingMap[4] == checkingMap[8] && checkingMap[8] == 0) return true;
-    if(checkingMap[2] == checkingMap[4] && checkingMap[4] == checkingMap[6] && checkingMap[6] == 0) return true;
+    if(checkingMap[0] == checkingMap[4] && checkingMap[4] == checkingMap[8] && checkingMap[8] != -1) return true;
+    if(checkingMap[2] == checkingMap[4] && checkingMap[4] == checkingMap[6] && checkingMap[6] != -1) return true;
     return false;
 }
 
-bool checkOWin(vector<int> checkingMap) {
-    for(int i = 0; i <= 2; i++) {
-        if(checkingMap[3*i] == checkingMap[3*i+1] && checkingMap[3*i+1] == checkingMap[3*i+2] && checkingMap[3*i+2] == 1) return true;
-        if(checkingMap[i] == checkingMap[i+3*1] && checkingMap[i+3*1] == checkingMap[i+3*2] && checkingMap[i+3*2] == 1) return true;
-    }
-    if(checkingMap[0] == checkingMap[4] && checkingMap[4] == checkingMap[8] && checkingMap[8] == 1) return true;
-    if(checkingMap[2] == checkingMap[4] && checkingMap[4] == checkingMap[6] && checkingMap[6] == 1) return true;
-    return false;
-}
-
-vector<int> simulateXwin(int randomSeed) {
+void simulateGame(int randomSeed) {
     srand(randomSeed+time(0));
     
     vector<int> seq = {};
@@ -69,54 +65,13 @@ vector<int> simulateXwin(int randomSeed) {
             }
         }
         seq.push_back(move);
-        turn = (turn+1)%2;
-        gameover = checkXWin(places);
-        if(checkOWin(places)) return {};
-        move = -1;
-    }
-    return seq;
+        gameover = checkGame(places);
+        if(gameover) listOfGames.insert({seq, turn});
 
+        turn = (turn+1)%2;
+    }
 }
 
-
-vector<int> simulateOwin(int randomSeed) {
-    srand(randomSeed);
-    
-    vector<int> seq = {};
-    vector<int> places = {-1,-1,-1,-1,-1,-1,-1,-1,-1};
-    queue<int> p1places = {};
-    queue<int> p2places = {};
-
-    int move = -1;
-    int turn = 0;
-    bool gameover = false;
-    while(!gameover) {
-        if(turn == 0) {
-            while(!(places[move] == -1)) move = rand()%9;
-            places[move] = 0;
-            p1places.push(move);
-            if(p1places.size()>3) {
-                places[p1places.front()] = -1;
-                p1places.pop();
-            }
-        } else {
-            while(!(places[move] == -1)) move = rand()%9;
-            places[move] = 1;
-            p2places.push(move);
-            if(p2places.size()>3) {
-                places[p2places.front()] = -1;
-                p2places.pop();
-            }
-        }
-        seq.push_back(move);
-        turn = (turn+1)%2;
-        gameover = checkOWin(places);
-        if(checkXWin(places)) return {};
-        move = -1;
-    }
-    return seq;
-
-}
 
 
 int main() {
@@ -126,17 +81,111 @@ int main() {
     //     if(!seqX.empty()) listOfXWins.push_back(seqX);
     //     if(!seqO.empty()) listOfOWins.push_back(seqO);
     // }
-    vector<vector<int>> listOfXWins = {};
-    vector<vector<int>> listOfOWins = {};
     
     int randSeed = 1;
-    double numberOfWins = 1e4;                                                          // change to 1e5 when trying higher/safer test cases
-    while(listOfXWins.size() < numberOfWins) {
-        vector<int> seqX = simulateXwin(randSeed);
-        if(!seqX.empty()) listOfXWins.push_back(seqX);
+    double numberOfGames = 1e6;                                                          // change to 1e5 when trying higher/safer test cases
+    while(listOfGames.size() < numberOfGames) {
+        simulateGame(randSeed);
         randSeed++;
     }
+    // cout << "finished" << endl;
 
+    double XwinRate = 0.0;
+    double OwinRate = 0.0;
+
+    for(map<vector<int>, int>::iterator it = listOfGames.begin(); it != listOfGames.end(); it++) {
+        if(it->second == 0) XwinRate = XwinRate+1;
+        else if(it->second == 1) OwinRate = OwinRate+1;
+    }
+    cout << "Number of games: " << numberOfGames << " | X wins: " << XwinRate << " | O wins: " << OwinRate << endl;
+    
+    vector<vector<int>> twoMoves = {};
+    for(int i = 0; i < 9; i++) twoMoves.push_back({0,0,0,0,0,0,0,0,0});
+    
+    for(map<vector<int>, int>::iterator it = listOfGames.begin(); it != listOfGames.end(); it++) {
+        if(it->second == 1) {
+            int firstMove = it->first[0];
+            int secondMove = it->first[1];
+            twoMoves[firstMove][secondMove] = twoMoves[firstMove][secondMove]+1;
+        }
+    }
+
+    // cout << "O\\X | ";
+    // for(int i = 0; i < 9; i++) cout << setw(3) << setfill('0') << (i+1) << " | ";
+
+    // for(int first = 0; first < 9; first++) {
+    //     cout << setw(3) << setfill('0') << (first+1) << " | ";
+    //     for(int second = 0; second < 9; second++) cout << setw(3) << setfill('0')<< twoMoves[first][second] << " | ";
+    //     cout << endl;
+    // }
+    // cout << endl;
+
+
+    vector<vector<vector<int>>> threeMoves = {};
+    vector<vector<int>> temp2D = {};
+
+    for(int i = 0; i < 9; i++) temp2D.push_back({0,0,0,0,0,0,0,0,0});
+    for(int i = 0; i < 9; i++) threeMoves.push_back(temp2D);
+
+    for(map<vector<int>, int>::iterator it = listOfGames.begin(); it != listOfGames.end(); it++) {
+        if(it->second == 1) {
+            int firstMove = it->first[0];
+            int secondMove = it->first[1];
+            int thirdMove = it->first[2];
+            threeMoves[firstMove][secondMove][thirdMove] = threeMoves[firstMove][secondMove][thirdMove]+1;
+        }
+    }
+
+
+    for(int first = 0; first < 9; first++) {
+        cout << "X: " << (first+1) << endl;
+        cout << "O\\X  | ";
+        for(int i = 0; i < 9; i++) cout << setw(4) << setfill('0') << (i+1) << " | ";
+        cout << endl;
+        for(int second = 0; second < 9; second++) {
+            cout << setw(4) << setfill('0') << (second+1) << " | ";
+            for(int third = 0; third < 9; third++) cout << setw(4) << setfill('0')<< threeMoves[first][second][third] << " | ";
+            cout << endl;
+        }
+    }
+    int maxWin = 0;
+    int maxI=0, maxJ=0, maxK=0;
+    int minWin = numberOfGames;
+    int minI=0, minJ=0, minK=0;
+    for(int i = 0; i < 9; i++) {
+        for(int j = 0; j < 9; j++) {
+            for(int k = 0; k < 9; k++) {
+                int current = threeMoves[i][j][k];
+                if(current != 0) {
+                    if(current > maxWin) {
+                        maxI = i;
+                        maxJ = j;
+                        maxK = k;
+                        maxWin = current;
+                    }
+                    if(current < minWin) {
+                        minWin = current;
+                        minI = i;
+                        minJ = j;
+                        minK = k;
+                    }
+                }
+            }
+        }
+    }
+    cout << "Max win rate: " << maxWin << " at moves " << maxI << " " << maxJ << " " << maxK << endl;
+    cout << "Min win rate: " << minWin << " at moves " << minI << " " << minJ << " " << minK << endl;
+    
+
+
+
+    // for(int i = 0; i < 9; i++) {
+    //     vector<int> temp = {};
+    //     for(int j = 0; j < 9; j++) temp.push_back(0);
+    //     initialMoveWinRates.push_back(temp);
+    // }
+
+    /*
     vector<vector<int>> numberOfInitialWins = {};
     vector<vector<double>> winRate = {};
     
@@ -164,12 +213,13 @@ int main() {
         cout << "Edge to Center Win Ratio: " << avgEdgeWinRate/batchWinRate[4] << " | Corner to Center Win Ratio: " << avgCornerWinRate/batchWinRate[4] << endl << endl;
         
     }
+    */
 
-    // for(int i = 0; i < numberOfWins; i++) {
+    // for(int i = 0; i < numberOfGames; i++) {
     //     int first = listOfXWins[i][0];
     //     numberOfInitialWins[first] = numberOfInitialWins[first]+1;
     // }
-    // for(int i = 0; i < 9; i++) winRate.push_back(numberOfInitialWins[i]/numberOfWins);
+    // for(int i = 0; i < 9; i++) winRate.push_back(numberOfInitialWins[i]/numberOfGames);
 
     
     // double edgeWinRate = (winRate[1]+winRate[3]+winRate[5]+winRate[7]);
