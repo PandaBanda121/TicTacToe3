@@ -90,35 +90,6 @@ int main() {
     }
     // cout << "finished" << endl;
 
-    double XwinRate = 0.0;
-    double OwinRate = 0.0;
-
-    for(map<vector<int>, int>::iterator it = listOfGames.begin(); it != listOfGames.end(); it++) {
-        if(it->second == 0) XwinRate = XwinRate+1;
-        else if(it->second == 1) OwinRate = OwinRate+1;
-    }
-    cout << "Number of games: " << numberOfGames << " | X wins: " << XwinRate << " | O wins: " << OwinRate << endl;
-    
-    vector<vector<int>> twoMoves = {};
-    for(int i = 0; i < 9; i++) twoMoves.push_back({0,0,0,0,0,0,0,0,0});
-    
-    for(map<vector<int>, int>::iterator it = listOfGames.begin(); it != listOfGames.end(); it++) {
-        if(it->second == 1) {
-            int firstMove = it->first[0];
-            int secondMove = it->first[1];
-            twoMoves[firstMove][secondMove] = twoMoves[firstMove][secondMove]+1;
-        }
-    }
-
-    // cout << "O\\X | ";
-    // for(int i = 0; i < 9; i++) cout << setw(3) << setfill('0') << (i+1) << " | ";
-
-    // for(int first = 0; first < 9; first++) {
-    //     cout << setw(3) << setfill('0') << (first+1) << " | ";
-    //     for(int second = 0; second < 9; second++) cout << setw(3) << setfill('0')<< twoMoves[first][second] << " | ";
-    //     cout << endl;
-    // }
-    // cout << endl;
 
 
     vector<vector<vector<int>>> threeMoves = {};

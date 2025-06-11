@@ -134,6 +134,18 @@ int AImove() {
         potentialp2places = p2places;
         potentialPlaces[i] = -1;
     }
+    
+    for(int i : potentialAIMoves) {
+        potentialPlaces[i] = 0;
+        potentialp1places.push(i);
+        if(potentialp1places.size() > 3) {
+            places[potentialp1places.front()] = -1;
+            potentialp1places.pop();
+        }
+        if(checkWin(potentialPlaces)) return i;
+        potentialp1places = p1places;
+        potentialPlaces[i] = -1;
+    }
 
     if(optimalMove == -1) {
         bool isValid = false;
